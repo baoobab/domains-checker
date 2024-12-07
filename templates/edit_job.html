@@ -1,0 +1,25 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактирование задачи</title>
+</head>
+<body>
+
+<h1>Редактирование задачи для домена {{ job.domain }}</h1>
+
+<form method="POST" action="/update-job/{{ job_id }}">
+    <label for="start_date">Дата и время начала (YYYY-MM-DD HH:MM):</label><br>
+    <input type="datetime-local" id="start_date" name="start_date" value="{{ job.start_date }}" required><br>
+
+    <label for="interval">Интервал (в минутах):</label><br>
+    <input type="number" id="interval" name="interval" value="{{ job.interval }}" min="1" required><br>
+
+    <button type="submit">Сохранить изменения</button>
+</form>
+
+<h2><a href="/cron-parser">Вернуться к списку задач</a></h2>
+
+</body>
+</html>

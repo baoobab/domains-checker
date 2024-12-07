@@ -1,0 +1,4 @@
+﻿Flask==2.0.3
+seleniumbase==1.55.0
+APScheduler==3.8.1
+python-dotenv==0.19.2

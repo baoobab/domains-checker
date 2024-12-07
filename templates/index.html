@@ -1,0 +1,38 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Парсер блоклистов</title>
+    <style>
+        #loading {
+            display: none; /* Скрываем сообщение по умолчанию */
+            color: blue;
+            font-weight: bold;
+        }
+    </style>
+    <script>
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block'; // Показываем сообщение
+            document.getElementById('result').innerHTML = ''; // Очищаем предыдущий результат
+        }
+    </script>
+</head>
+<body>
+    <h1>Парсер блоклистов</h1>
+    <form method="POST" onsubmit="showLoading()">
+        <label for="domain">Введите домен:</label>
+        <input type="text" id="domain" name="domain" required>
+        <button type="submit">Проверить</button>
+    </form>
+
+    <p id="loading">Ожидайте...</p> <!-- Сообщение ожидания -->
+
+    {% if result %}
+    <h2>Результат:</h2>
+    <div id="result">{{ result }}</div> <!-- Обернули результат в div -->
+    {% endif %}
+
+    <h2><a href="/cron-parser">Крон-парсеры</a></h2> <!-- Ссылка на новый раздел -->
+</body>
+</html>

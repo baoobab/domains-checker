@@ -1,0 +1,110 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Крон-парсеры</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        .success {
+            background-color: #d4edda; /* Светло-зеленый */
+        }
+        .failure {
+            background-color: #f8d7da; /* Светло-красный */
+        }
+    </style>
+    <script>
+        // Функция для автоматического обновления страницы
+        function refreshPage() {
+            window.location.reload();
+        }
+
+        // Устанавливаем интервал обновления (например, каждые 10 секунд)
+        setInterval(refreshPage, 30000);
+    </script>
+</head>
+<body>
+    <h1>Крон-парсеры</h1>
+
+    <form method="POST">
+        <label for="domain">Введите домен:</label><br>
+        <input type="text" id="domain" name="domain" required><br>
+
+        <label for="start_date">Дата и время начала (YYYY-MM-DD HH:MM):</label><br>
+        <input type="datetime-local" id="start_date" name="start_date" required><br>
+
+        <label for="interval">Интервал (в минутах):</label><br>
+        <input type="number" id="interval" name="interval" min="1" required><br>
+
+        <button type="submit">Запланировать парсинг</button>
+    </form>
+
+    {% if message %}
+      <h2>{{ message }}</h2>
+    {% endif %}
+
+    <h2>Запланированные задачи:</h2>
+    <table>
+      <thead>
+          <tr>
+              <th>Домен</th>
+              <th>Результат</th>
+              <th>Интервал (мин)</th>
+              <th>Дата начала</th>
+              <th>Последняя проверка</th>
+              <th>Действия</th>
+          </tr>
+      </thead>
+      <tbody>
+      {% for job_id, job in jobs.items() %}
+          <tr class="{% if job.last_result and 'Blocked' in job.last_result %}failure{% else %}success{% endif %}">
+              <td>{{ job.domain }}</td>
+              <td>{{ job.last_result if job.last_result else 'Нет данных' }}</td>
+              <td>{{ job.interval }}</td>
+              <td>{{ job.start_date }}</td>
+              {% if job.last_check %}
+                  <td>{{ job.last_check }}</td>
+              {% else %}
+                  <td>Нет данных</td>
+              {% endif %}
+              <td>
+                  <!-- Кнопка удаления -->
+                  <form method="POST" action="/delete-job/{{ job_id }}" style="display:inline;">
+                      <button type="submit">Удалить</button>
+                  </form>
+
+                  <!-- Кнопка редактирования -->
+                  <form method="GET" action="/edit-job/{{ job_id }}" style="display:inline;">
+                      <button type="submit">Редактировать</button>
+                  </form>
+              </td>
+          </tr>
+      {% endfor %}
+      {% if jobs|length == 0 %}
+          <tr><td colspan="6">Нет запланированных задач.</td></tr>
+      {% endif %}
+      </tbody>
+    </table>
+
+    <h2><a href="/">Вернуться на главную</a></h2> <!-- Ссылка на главную страницу -->
+</body>
+</html>
