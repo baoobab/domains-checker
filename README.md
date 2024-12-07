@@ -1,3 +1,4 @@
-﻿## How to run
-1. pip install -r requirements.txt
-2. python src/app.py
+## How to run
+1. set up .env file
+2. Install the packages: ``pip install -r requirements.txt``
+4. Run: ``python src/app.py``
