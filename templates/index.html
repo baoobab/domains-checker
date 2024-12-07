@@ -1,38 +1,139 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Парсер блоклистов</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet"> <!-- Подключаем шрифт Roboto -->
+    
     <style>
-        #loading {
-            display: none; /* Скрываем сообщение по умолчанию */
-            color: blue;
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #4a90e2;
+        }
+
+        form {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
             font-weight: bold;
         }
+
+        input[type="text"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            margin-bottom: 15px;
+        }
+
+        button {
+            background-color: #4a90e2;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #357ab8; /* Цвет кнопки при наведении */
+        }
+
+        #loading {
+            display: none; /* Скрываем сообщение по умолчанию */
+            color: #4a90e2; /* Устанавливаем единый цвет текста */
+            font-weight: bold;
+            text-align: center; /* Центрируем текст ожидания */
+        }
+
+        #result {
+            margin-top: 20px; /* Отступ сверху для результата */
+            padding: 10px; 
+            border-left: 5px solid #4a90e2; /* Левый бордер для акцента */
+        }
+
+        h2 {
+            text-align: center; /* Центрируем заголовок результата */
+        }
+
+        a {
+            text-decoration: none; /* Убираем подчеркивание */
+            color: #4a90e2; /* Цвет ссылки */
+        }
+
+        a:hover {
+            text-decoration: underline; /* Подчеркивание при наведении */
+        }
     </style>
+</head>
+
+<body>
+    <h1>Парсер блоклистов</h1>
+    
+    <form method="POST" onsubmit="showLoading()">
+        <label for="domain">Введите домен:</label>
+        <input type="text" id="domain" name="domain" required placeholder="например, example.com">
+        
+        <button type="submit">Проверить</button>
+        
+        <p id="loading">Ожидайте...</p> <!-- Сообщение ожидания внутри формы -->
+        
+        {% if request.args.get('result') %}
+        <h2>Результат:</h2>
+        <div id="result" class="{% if 'Blocked' in request.args.get('result') %}failure{% else %}success{% endif %}">
+          {{ request.args.get('result') }}
+        </div> <!-- Обернули результат в div -->
+        {% endif %}
+        
+        <h2><a href="/cron-parser" class="button">Крон-парсеры</a></h2> <!-- Ссылка на новый раздел -->
+        
+    </form>
+
     <script>
         function showLoading() {
             document.getElementById('loading').style.display = 'block'; // Показываем сообщение
-            document.getElementById('result').innerHTML = ''; // Очищаем предыдущий результат
+            document.getElementById('result').style.display = 'none'; // Скрываем предыдущий результат
         }
+
+        // Функция для изменения фона результата в зависимости от текста
+        function updateResultBackground() {
+          const resultDiv = document.getElementById('result');
+          if (resultDiv) {
+              const resultText = resultDiv.innerText || '';
+              if (resultText.includes('Available')) {
+                  resultDiv.style.backgroundColor = '#d4edda'; // Светло-зеленый
+              } else if (resultText.includes('Blocked')) {
+                  resultDiv.style.backgroundColor = '#f8d7da'; // Светло-красный
+              }
+              resultDiv.style.display = 'block'; // Показываем результат
+          }
+      }
+
+      // Вызов функции обновления фона после загрузки страницы
+      window.onload = updateResultBackground;
+
     </script>
-</head>
-<body>
-    <h1>Парсер блоклистов</h1>
-    <form method="POST" onsubmit="showLoading()">
-        <label for="domain">Введите домен:</label>
-        <input type="text" id="domain" name="domain" required>
-        <button type="submit">Проверить</button>
-    </form>
 
-    <p id="loading">Ожидайте...</p> <!-- Сообщение ожидания -->
-
-    {% if result %}
-    <h2>Результат:</h2>
-    <div id="result">{{ result }}</div> <!-- Обернули результат в div -->
-    {% endif %}
-
-    <h2><a href="/cron-parser">Крон-парсеры</a></h2> <!-- Ссылка на новый раздел -->
 </body>
+
 </html>

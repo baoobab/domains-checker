@@ -1,4 +1,4 @@
-﻿# Python
+# Python
 __pycache__/
 *.py[cod]
 *.pyo
@@ -41,3 +41,5 @@ secrets.py
 
 # Файлы настроек окружения
 .env
+.replit
+*.nix
