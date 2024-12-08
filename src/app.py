@@ -106,7 +106,6 @@ def parse_blocklist(domain):
 
 
 def process_queue():
-    print("process_queue")
     while True:
         domain = jobs_queue.get()  # Получаем домен из очереди
         if domain is None:  # Проверка на завершение работы потока
@@ -163,18 +162,26 @@ def cron_parser():
         # Генерация уникального идентификатора для задания
         job_id = str(uuid.uuid4())  # Генерируем уникальный ID
 
-        # Запланируем задачу с заданным интервалом и датой старта
-        scheduler.add_job(func=schedule_parsing,
-                          trigger='interval',
-                          id=job_id,
-                          args=[domain],
-                          minutes=interval_minutes,
-                          start_date=utc_start_date)
-
         # Сохраняем задачу в файл
         if utc_start_date:
+            # Запланируем задачу с заданным интервалом и датой старта
+            scheduler.add_job(func=schedule_parsing,
+                              trigger='interval',
+                              id=job_id,
+                              args=[domain],
+                              minutes=interval_minutes,
+                              start_date=utc_start_date)
+            
             save_job(job_id, domain, utc_start_date.isoformat(), interval_minutes)
         else:
+            # Запланируем задачу с заданным интервалом и датой старта
+            scheduler.add_job(func=schedule_parsing,
+                              trigger='interval',
+                              id=job_id,
+                              args=[domain],
+                              minutes=interval_minutes,
+                              start_date=client_start_date)
+            
             save_job(job_id, domain, client_start_date.isoformat(), interval_minutes)
 
         

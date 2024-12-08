@@ -130,13 +130,6 @@
     <script>
         // Функция для автоматического обновления страницы
         function refreshPage() {
-            // Очищаем сообщение перед обновлением
-            const messageElement = document.querySelector('.message'); // Предполагаем, что сообщение находится в теге <h2>
-            if (messageElement) {
-                setTimeout(() => {
-                    messageElement.textContent = ''; // Очищаем текст сообщения через 5 секунд
-                }, 5000);
-            }
             window.location.reload();
         }
 
@@ -239,9 +232,11 @@
         }
 
         document.addEventListener("DOMContentLoaded", function() {
-            const messageElement = document.querySelector('h2'); // Предполагаем, что сообщение находится в теге <h2>
+            const messageElement = document.querySelector('.message');
             if (messageElement) {
-                messageElement.textContent = ''; // Очищаем текст сообщения
+                setTimeout(() => {
+                    messageElement.textContent = ''; // Очищаем текст сообщения через 3 секунд
+                }, 3000);
             }
             
             const dateCells = document.querySelectorAll(".formatted-date");
