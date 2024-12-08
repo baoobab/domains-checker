@@ -13,7 +13,7 @@ import atexit
 # Загрузка переменных окружения из .env файла
 load_dotenv()
 
-app = Flask(__name__, template_folder="/home/runner/domains-checker/templates")
+app = Flask(__name__, template_folder=os.getenv("FLASK_TEMPLATE_FOLDER"))
 
 # Глобальный экземпляр драйвера
 driver = Driver()
