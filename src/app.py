@@ -1,5 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 from seleniumbase import Driver
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -28,6 +31,9 @@ jobs_file = os.getenv("DB_PATH")
 # Создаем глобальную очередь для управления задачами
 jobs_queue = queue.Queue()
 
+# Создаем глобальную очередь для управления рассылкой писем
+mails_queue = queue.Queue()
+
 # Текущий часовой пояс сервера
 server_timezone = datetime.now().astimezone().tzinfo
 
@@ -35,12 +41,16 @@ server_timezone = datetime.now().astimezone().tzinfo
 login_manager = LoginManager()
 login_manager.init_app(app)
 
+
 # Модель пользователя
 class User(UserMixin):
+
     def __init__(self, username):
         self.username = username
+
     def get_id(self):
         return self.username  # Возвращаем имя пользователя как уникальный идентификатор
+
 
 @login_manager.user_loader
 def load_user(username):
@@ -48,13 +58,41 @@ def load_user(username):
         return User(username)
     return None
 
+
+# Функция для отправки письма
+def send_email(subject, body):
+    sender_email = os.getenv('SMTP_FROM')
+    receiver_email = os.getenv('SMTP_TO')
+    password = os.getenv('SMTP_PASSWORD')
+    smtp_host = os.getenv("SMTP_HOST")
+    smtp_port = os.getenv("SMTP_PORT")
+
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = receiver_email
+    msg['Subject'] = subject
+
+    msg.attach(MIMEText(body, 'plain'))
+    try:
+        if not password or not sender_email or not receiver_email or not smtp_host or not smtp_port:
+            raise Exception()
+        with smtplib.SMTP(smtp_host, int(smtp_port)) as server:
+            server.starttls()  # Защита соединения
+            server.login(sender_email, password)  # Логин на почтовом сервере
+            server.send_message(msg)  # Отправка сообщения
+        print("Письмо для отправлено")
+    except Exception as e:
+        print(f"Ошибка при отправке письма: {e}")
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
 
-        if username == os.getenv('ADMIN_USERNAME') and password == os.getenv('ADMIN_PASSWORD'):
+        if username == os.getenv('ADMIN_USERNAME') and password == os.getenv(
+                'ADMIN_PASSWORD'):
             user = User(username)
             login_user(user)
             return redirect(url_for('index'))
@@ -66,13 +104,15 @@ def login():
             <input type="submit" value="Войти">
         </form>
     '''
-    
+
+
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('login'))
-    
+
+
 def init_driver():
     global driver
     options = {"uc": True, "headless": True}
@@ -89,6 +129,7 @@ def shutdown_scheduler():
 def shutdown_thread():
     """Останавливаем поток обработки очереди."""
     jobs_queue.put(None)  # Отправляем сигнал завершения потоку
+    mails_queue.put(None)  # Отправляем сигнал завершения потоку
 
 
 def unify_date(date_str, timezone_offset_str):
@@ -106,7 +147,8 @@ def unify_date(date_str, timezone_offset_str):
 
         return utc_date
     except Exception as e:
-        print(f"Ошибка при обработке даты {date_str} {timezone_offset_str}:", e)
+        print(f"Ошибка при обработке даты {date_str} {timezone_offset_str}:",
+              e)
         return None  # Возвращаем None в случае ошибки
 
 
@@ -139,7 +181,7 @@ def parse_blocklist(domain):
         elif (len(results) > 2 and results[2].startswith("в")
               ):  # когда results = ['Искомый', 'ресурс', 'включен'] => блокнут
             results = "Blocked"
-        else:  #(len(results) > 2 and results[2].startswith("н")): # когда results = ['Искомый', 'ресурс', 'не', 'найден'] => доступен
+        else:  # когда results = ['Искомый', 'ресурс', 'не', 'найден'] => доступен
             results = "Available"
 
         return results if results else "Не удалось найти результаты."
@@ -148,15 +190,29 @@ def parse_blocklist(domain):
         return f"Произошла ошибка при парсинге: {str(e)}"
 
 
-def process_queue():
+def process_jobs_queue():
     while True:
         domain = jobs_queue.get()  # Получаем домен из очереди
         if domain is None:  # Проверка на завершение работы потока
             break
 
         result = parse_blocklist(domain)  # Парсим домен
+        if result == "Blocked":
+            mails_queue.put(
+                domain
+            )  # Все блокнутые домены отправляем в очередь для рассылки
+
         update_job_result(domain, result)  # Обновляем результат задачи
         jobs_queue.task_done()  # Указываем, что задача выполнена
+
+
+def process_mails_queue():
+    while True:
+        domain = mails_queue.get()  # Получаем домен из очереди
+        if domain is None:  # Проверка на завершение работы потока
+            break
+        send_email("Домен заблокирован", f"Домен {domain} заблокирован")
+        mails_queue.task_done()  # Указываем, что задача выполнена
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -190,7 +246,7 @@ def cron_parser():
         try:
             client_start_date = datetime.fromisoformat(
                 start_date_str)  # Преобразуем строку в объект datetime
-            
+
             utc_start_date = unify_date(start_date_str, timezone_str)
         except ValueError:
             return render_template("cron_parser.html",
@@ -216,8 +272,9 @@ def cron_parser():
                               args=[domain],
                               minutes=interval_minutes,
                               start_date=utc_start_date)
-            
-            save_job(job_id, domain, utc_start_date.isoformat(), interval_minutes)
+
+            save_job(job_id, domain, utc_start_date.isoformat(),
+                     interval_minutes)
         else:
             # Запланируем задачу с заданным интервалом и датой старта
             scheduler.add_job(func=schedule_parsing,
@@ -226,10 +283,10 @@ def cron_parser():
                               args=[domain],
                               minutes=interval_minutes,
                               start_date=client_start_date)
-            
-            save_job(job_id, domain, client_start_date.isoformat(), interval_minutes)
 
-        
+            save_job(job_id, domain, client_start_date.isoformat(),
+                     interval_minutes)
+
         # После добавления задачи обновляем список задач и возвращаем его на страницу
         jobs = load_jobs(
         )  # Загружаем обновленный список задач после добавления новой задачи
@@ -283,7 +340,7 @@ def update_job(job_id):
     if job_id in jobs:
         start_date_str = request.form["start_date"]
         timezone_str = request.form[
-        "timezone"]  # Получаем выбранный часовой пояс
+            "timezone"]  # Получаем выбранный часовой пояс
         interval_minutes = int(
             request.form["interval"])  # Получаем интервал в минутах
 
@@ -297,7 +354,7 @@ def update_job(job_id):
                 jobs[job_id]['start_date'] = utc_start_date.isoformat()
             else:
                 jobs[job_id]['start_date'] = client_start_date.isoformat()
-                
+
             jobs[job_id]['interval'] = interval_minutes
 
             # Обновляем задачу в планировщике
@@ -348,9 +405,12 @@ def update_job_result(domain, result):
     for job_id, job in jobs.items():
         if job['domain'] == domain:
             job['last_result'] = result  # Сохраняем результат последней проверки
-            
-            now_utc = datetime.now(timezone.utc) # Форматируем дату с UTC-смещением
-            formatted_datetime = now_utc.strftime("%Y-%m-%dT%H:%M:00+00:00") #Форматируем дату без секунд, добавляем UTC смещение
+
+            now_utc = datetime.now(
+                timezone.utc)  # Форматируем дату с UTC-смещением
+            formatted_datetime = now_utc.strftime(
+                "%Y-%m-%dT%H:%M:00+00:00"
+            )  #Форматируем дату без секунд, добавляем UTC смещение
             job['last_check'] = formatted_datetime
 
     with open(str(jobs_file), 'w') as f:
@@ -417,8 +477,12 @@ if __name__ == "__main__":
         scheduler.start()
 
     # Запускаем поток для обработки очереди
-    thread = threading.Thread(target=process_queue)
-    thread.start()
+    jobsThread = threading.Thread(target=process_jobs_queue)
+    jobsThread.start()
+
+    # Запускаем поток для обработки очереди
+    mailsThread = threading.Thread(target=process_mails_queue)
+    mailsThread.start()
 
     load_and_schedule_jobs()  # Загружаем задачи из файла в планировщик
 
