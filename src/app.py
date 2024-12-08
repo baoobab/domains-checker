@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for
 from dotenv import load_dotenv
 from seleniumbase import Driver
 from apscheduler.schedulers.background import BackgroundScheduler
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import uuid
 import json
 import os
@@ -17,13 +17,17 @@ app = Flask(__name__, template_folder="/home/runner/domains-checker/templates")
 
 # Глобальный экземпляр драйвера
 driver = Driver()
-scheduler = BackgroundScheduler()
+scheduler = BackgroundScheduler({'apscheduler.timezone':
+                                 'UTC'})  # Таймзона стандартизорована
 
 # Файл для хранения запланированных задач
 jobs_file = os.getenv("DB_PATH")
 
 # Создаем глобальную очередь для управления задачами
 jobs_queue = queue.Queue()
+
+# Текущий часовой пояс сервера
+server_timezone = datetime.now().astimezone().tzinfo
 
 
 def init_driver():
@@ -42,6 +46,25 @@ def shutdown_scheduler():
 def shutdown_thread():
     """Останавливаем поток обработки очереди."""
     jobs_queue.put(None)  # Отправляем сигнал завершения потоку
+
+
+def unify_date(date_str, timezone_offset_str):
+    """Обрабатывает строку даты и пояса и конвертирует ее в UTC."""
+    try:
+        date_naive = datetime.fromisoformat(date_str.strip())
+
+        timezone_offset_str = timezone_offset_str.replace("UTC", "")
+        offset_hours, offset_minutes = map(int,
+                                           timezone_offset_str[1:].split(':'))
+        offset = timedelta(hours=offset_hours, minutes=offset_minutes)
+
+        date_aware = date_naive.replace(tzinfo=timezone(offset))
+        utc_date = date_aware.astimezone(timezone.utc)
+
+        return utc_date
+    except Exception as e:
+        print(f"Ошибка при обработке даты {date_str} {timezone_offset_str}:", e)
+        return None  # Возвращаем None в случае ошибки
 
 
 def parse_blocklist(domain):
@@ -83,19 +106,15 @@ def parse_blocklist(domain):
 
 
 def process_queue():
-    print("target reklamka")
+    print("process_queue")
     while True:
         domain = jobs_queue.get()  # Получаем домен из очереди
-        print("1) polu4en:", domain)
         if domain is None:  # Проверка на завершение работы потока
             break
 
         result = parse_blocklist(domain)  # Парсим домен
-        print("2) rasparshen", result)
         update_job_result(domain, result)  # Обновляем результат задачи
-        print("3) obnovlen", result)
         jobs_queue.task_done()  # Указываем, что задача выполнена
-        print("4) POPnut, ostalos:", jobs_queue.unfinished_tasks)
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -117,13 +136,18 @@ def cron_parser():
     if request.method == "POST":
         domain = request.form["domain"]
         start_date_str = request.form["start_date"]
+        timezone_str = request.form[
+            "timezone"]  # Получаем выбранный часовой пояс
+
         interval_minutes = int(
             request.form["interval"])  # Получаем интервал в минутах
 
         # Проверка формата даты
         try:
-            start_date = datetime.fromisoformat(
+            client_start_date = datetime.fromisoformat(
                 start_date_str)  # Преобразуем строку в объект datetime
+            
+            utc_start_date = unify_date(start_date_str, timezone_str)
         except ValueError:
             return render_template("cron_parser.html",
                                    message="Неверный формат даты.",
@@ -145,11 +169,15 @@ def cron_parser():
                           id=job_id,
                           args=[domain],
                           minutes=interval_minutes,
-                          start_date=start_date)
+                          start_date=utc_start_date)
 
         # Сохраняем задачу в файл
-        save_job(job_id, domain, start_date.isoformat(), interval_minutes)
+        if utc_start_date:
+            save_job(job_id, domain, utc_start_date.isoformat(), interval_minutes)
+        else:
+            save_job(job_id, domain, client_start_date.isoformat(), interval_minutes)
 
+        
         # После добавления задачи обновляем список задач и возвращаем его на страницу
         jobs = load_jobs(
         )  # Загружаем обновленный список задач после добавления новой задачи
@@ -170,13 +198,11 @@ def delete_job(job_id):
         del jobs[job_id]  # Удаляем задачу из списка
         with open(str(jobs_file), 'w') as f:
             json.dump(jobs, f)  # Сохраняем изменения в файл
-        return render_template("cron_parser.html",
-                               message="Задача удалена!",
-                               jobs=jobs)
 
-    return render_template("cron_parser.html",
-                           message="Задача не найдена.",
-                           jobs=jobs)
+        return redirect(
+            url_for('cron_parser'))  # Перенаправляем на страницу крона
+
+    return redirect(url_for('cron_parser'))  # Перенаправляем на страницу крона
 
 
 @app.route("/edit-job/<job_id>", methods=["GET"])
@@ -201,13 +227,22 @@ def update_job(job_id):
 
     if job_id in jobs:
         start_date_str = request.form["start_date"]
+        timezone_str = request.form[
+        "timezone"]  # Получаем выбранный часовой пояс
         interval_minutes = int(
             request.form["interval"])  # Получаем интервал в минутах
 
         try:
-            start_date = datetime.fromisoformat(
+            client_start_date = datetime.fromisoformat(
                 start_date_str)  # Преобразуем строку в объект datetime
-            jobs[job_id]['start_date'] = start_date.isoformat()
+
+            utc_start_date = unify_date(start_date_str, timezone_str)
+
+            if (utc_start_date):
+                jobs[job_id]['start_date'] = utc_start_date.isoformat()
+            else:
+                jobs[job_id]['start_date'] = client_start_date.isoformat()
+                
             jobs[job_id]['interval'] = interval_minutes
 
             # Обновляем задачу в планировщике
@@ -235,7 +270,6 @@ def update_job(job_id):
 
 
 def schedule_parsing(domain):
-    print("0) almost", domain)
     jobs_queue.put(domain)  # Добавляем домен в очередь для обработки
 
 
@@ -259,8 +293,10 @@ def update_job_result(domain, result):
     for job_id, job in jobs.items():
         if job['domain'] == domain:
             job['last_result'] = result  # Сохраняем результат последней проверки
-            job['last_check'] = datetime.now().isoformat(
-            )  # Сохраняем дату последней проверки
+            
+            now_utc = datetime.now(timezone.utc) # Форматируем дату с UTC-смещением
+            formatted_datetime = now_utc.strftime("%Y-%m-%dT%H:%M:00+00:00") #Форматируем дату без секунд, добавляем UTC смещение
+            job['last_check'] = formatted_datetime
 
     with open(str(jobs_file), 'w') as f:
         json.dump(jobs, f)
@@ -334,6 +370,8 @@ if __name__ == "__main__":
     # Регистрация функций завершения
     atexit.register(shutdown_scheduler)
     atexit.register(shutdown_thread)
+
+    print("Часовой пояс сервера:", server_timezone)
 
     try:
         app.run(os.getenv("HOST"), int(os.getenv("PORT") or 3000))

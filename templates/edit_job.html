@@ -74,6 +74,20 @@
             text-decoration: underline; /* Подчеркивание при наведении */
         }
     </style>
+    <script>
+        // Скрипт для скрытого добавления таймзоны клиента в форму
+        document.addEventListener("DOMContentLoaded", function() {
+            // Получаем смещение в минутах от UTC
+            const timezoneOffset = new Date().getTimezoneOffset();
+            // Преобразуем смещение в строку, например, "UTC+3"
+            const hoursOffset = -Math.floor(timezoneOffset / 60);
+            const minutesOffset = Math.abs(timezoneOffset % 60);
+            const timezoneString = `UTC${hoursOffset >= 0 ? '+' : ''}${hoursOffset}:${minutesOffset.toString().padStart(2, '0')}`;
+
+            // Записываем строку в скрытое поле
+            document.getElementById('timezone').value = timezoneString;
+        });
+    </script>
 </head>
 
 <body>
@@ -87,6 +101,9 @@
         <label for="interval">Интервал (в минутах):</label>
         <input type="number" id="interval" name="interval" value="{{ job.interval }}" min="1" required>
 
+        <!-- Скрытое поле для часового пояса -->
+        <input type="hidden" id="timezone" name="timezone">
+        
         <button type="submit">Сохранить</button>
     </form>
 

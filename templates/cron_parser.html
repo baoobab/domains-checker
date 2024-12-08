@@ -5,9 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Крон-парсеры</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet"> <!-- Подключаем шрифт Roboto -->
-    
+
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Подключаем шрифт Roboto -->
+
     <style>
         body {
             font-family: 'Roboto', sans-serif;
@@ -59,7 +60,8 @@
         }
 
         button:hover {
-            background-color: #357ab8; /* Цвет кнопки при наведении */
+            background-color: #357ab8;
+            /* Цвет кнопки при наведении */
         }
 
         table {
@@ -80,30 +82,81 @@
         }
 
         tr:hover {
-            background-color: #f1f1f1; /* Цвет строки при наведении */
+            background-color: #f1f1f1;
+            /* Цвет строки при наведении */
         }
 
         .success {
-            background-color: #d4edda; /* Светло-зеленый */
+            background-color: #d4edda;
+            /* Светло-зеленый */
         }
 
         .failure {
-            background-color: #f8d7da; /* Светло-красный */
+            background-color: #f8d7da;
+            /* Светло-красный */
         }
 
         h2 {
-            text-align: center; /* Центрируем заголовок */
+            text-align: center;
+            /* Центрируем заголовок */
         }
 
         a {
-            text-decoration: none; /* Убираем подчеркивание */
-            color: #4a90e2; /* Цвет ссылки */
+            text-decoration: none;
+            /* Убираем подчеркивание */
+            color: #4a90e2;
+            /* Цвет ссылки */
         }
 
         a:hover {
-            text-decoration: underline; /* Подчеркивание при наведении */
+            text-decoration: underline;
+            /* Подчеркивание при наведении */
+        }
+
+        .action-buttons {
+            display: flex;
+            /* Используем flexbox для расположения кнопок */
+            gap: 5px;
+            /* Пробел между кнопками */
+        }
+
+        .action-buttons button {
+            padding: 5px 10px;
+            /* Уменьшаем отступы для кнопок */
+            font-size: 14px;
+            /* Уменьшаем размер шрифта для кнопок */
         }
     </style>
+    <script>
+        // Функция для автоматического обновления страницы
+        function refreshPage() {
+            // Очищаем сообщение перед обновлением
+            const messageElement = document.querySelector('.message'); // Предполагаем, что сообщение находится в теге <h2>
+            if (messageElement) {
+                setTimeout(() => {
+                    messageElement.textContent = ''; // Очищаем текст сообщения через 5 секунд
+                }, 5000);
+            }
+            window.location.reload();
+        }
+
+        // Устанавливаем интервал обновления страницы
+        setInterval(refreshPage, 30000);
+    </script>
+    <script>
+        // Скрипт для скрытого добавления таймзоны клиента в форму
+        document.addEventListener("DOMContentLoaded", function() {
+            // Получаем смещение в минутах от UTC
+            const timezoneOffset = new Date().getTimezoneOffset();
+            // Преобразуем смещение в строку, например, "UTC+3"
+            const hoursOffset = -Math.floor(timezoneOffset / 60);
+            const minutesOffset = Math.abs(timezoneOffset % 60);
+            const timezoneString = `UTC${hoursOffset >= 0 ? '+' : ''}${hoursOffset}:${minutesOffset.toString().padStart(2, '0')}`;
+
+            // Записываем строку в скрытое поле
+            document.getElementById('timezone').value = timezoneString;
+        });
+    </script>
 </head>
 
 <body>
@@ -119,59 +172,92 @@
         <label for="interval">Интервал (в минутах):</label>
         <input type="number" id="interval" name="interval" min="1" required>
 
+        <!-- Скрытое поле для часового пояса -->
+        <input type="hidden" id="timezone" name="timezone">
+
         <button type="submit">Запланировать парсинг</button>
-        
+
         {% if message %}
-          <h2>{{ message }}</h2>
+        <h2 class="message">{{ message }}</h2>
         {% endif %}
-        
+
     </form>
 
     <h2>Запланированные задачи:</h2>
     <table>
-      <thead>
-          <tr>
-              <th>Домен</th>
-              <th>Результат</th>
-              <th>Интервал (мин)</th>
-              <th>Дата начала</th>
-              <th>Последняя проверка</th>
-              <th>Действия</th>
-          </tr>
-      </thead>
-      <tbody>
-      {% for job_id, job in jobs.items() %}
-          <tr class="{% if job.last_result and 'Blocked' in job.last_result %}failure{% else %}success{% endif %}">
-              <td>{{ job.domain }}</td>
-              <td>{{ job.last_result if job.last_result else 'Нет данных' }}</td>
-              <td>{{ job.interval }}</td>
-              <td>{{ job.start_date }}</td>
-              {% if job.last_check %}
-                  <td>{{ job.last_check }}</td>
-              {% else %}
-                  <td>Нет данных</td>
-              {% endif %}
-              <td>
-                  <!-- Кнопка удаления -->
-                  <form method="POST" action="/delete-job/{{ job_id }}" style="display:inline;">
-                      <button type="submit">Удалить</button>
-                  </form>
+        <thead>
+            <tr>
+                <th>Домен</th>
+                <th>Результат</th>
+                <th>Интервал (мин)</th>
+                <th>Дата начала</th>
+                <th>Последняя проверка</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for job_id, job in jobs.items() %}
+            <tr class="{% if job.last_result and 'Blocked' in job.last_result %}failure{% else %}success{% endif %}">
+                <td>{{ job.domain }}</td>
+                <td>{{ job.last_result if job.last_result else 'Нет данных' }}</td>
+                <td>{{ job.interval }}</td>
+                <td class="formatted-date">{{ job.start_date }}</td>
+                <!-- <td>{{ job.start_date }}</td> -->
+                {% if job.last_check %}
+                <td class="formatted-date">{{ job.last_check }}</td>
+                <!-- <td>{{ job.last_check }}</td> -->
+                {% else %}
+                <td>Нет данных</td>
+                {% endif %}
+                <td class="action-buttons">
+                    <!-- Кнопка удаления -->
+                    <form method="POST" action="/delete-job/{{ job_id }}" style="display:inline;">
+                        <button type="submit">Удалить</button>
+                    </form>
 
-                  <!-- Кнопка редактирования -->
-                  <form method="GET" action="/edit-job/{{ job_id }}" style="display:inline;">
-                      <button type="submit">Редактировать</button>
-                  </form>
-              </td>
-          </tr>
-      {% endfor %}
-      {% if jobs|length == 0 %}
-          <tr><td colspan="6">Нет запланированных задач.</td></tr>
-      {% endif %}
-      </tbody>
+                    <!-- Кнопка редактирования -->
+                    <form method="GET" action="/edit-job/{{ job_id }}" style="display:inline;">
+                        <button type="submit">Редактировать</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+            {% if jobs|length == 0 %}
+            <tr>
+                <td colspan="6">Нет запланированных задач.</td>
+            </tr>
+            {% endif %}
+        </tbody>
     </table>
 
     <h2><a href="/">На главную</a></h2> <!-- Ссылка на главную страницу -->
-    
+
+    <script>
+        // Скрипт для форматирования дат в таблице доменов
+        function isValidDate(d) {
+            return d instanceof Date && !isNaN(d);
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const messageElement = document.querySelector('h2'); // Предполагаем, что сообщение находится в теге <h2>
+            if (messageElement) {
+                messageElement.textContent = ''; // Очищаем текст сообщения
+            }
+            
+            const dateCells = document.querySelectorAll(".formatted-date");
+            dateCells.forEach(cell => {
+                const dateValue = cell.textContent.trim(); // Получаем значение даты и убираем лишние пробелы
+                const date = new Date(dateValue); // Создаем объект Date
+                if (!isValidDate(date)) {
+                    return; // Если дата не валидна, пропускаем
+                }
+
+                // Форматируем дату без секунд и без буквы T
+                const options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' };
+                cell.textContent = date.toLocaleString('ru-RU', options).replace(',', ''); // Заменяем запятую на пробел
+            });
+        });
+    </script>
 </body>
 
 </html>
