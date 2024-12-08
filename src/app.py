@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
 from dotenv import load_dotenv
 from seleniumbase import Driver
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -14,6 +15,7 @@ import atexit
 load_dotenv()
 
 app = Flask(__name__, template_folder=os.getenv("FLASK_TEMPLATE_FOLDER"))
+app.secret_key = os.getenv('SECRET_KEY')
 
 # Глобальный экземпляр драйвера
 driver = Driver()
@@ -29,7 +31,48 @@ jobs_queue = queue.Queue()
 # Текущий часовой пояс сервера
 server_timezone = datetime.now().astimezone().tzinfo
 
+# Настройка Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
 
+# Модель пользователя
+class User(UserMixin):
+    def __init__(self, username):
+        self.username = username
+    def get_id(self):
+        return self.username  # Возвращаем имя пользователя как уникальный идентификатор
+
+@login_manager.user_loader
+def load_user(username):
+    if username == os.getenv('ADMIN_USERNAME'):
+        return User(username)
+    return None
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        if username == os.getenv('ADMIN_USERNAME') and password == os.getenv('ADMIN_PASSWORD'):
+            user = User(username)
+            login_user(user)
+            return redirect(url_for('index'))
+
+    return '''
+        <form method="post">
+            Имя пользователя: <input type="text" name="username"><br>
+            Пароль: <input type="password" name="password"><br>
+            <input type="submit" value="Войти">
+        </form>
+    '''
+    
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+    
 def init_driver():
     global driver
     options = {"uc": True, "headless": True}
@@ -117,6 +160,7 @@ def process_queue():
 
 
 @app.route("/", methods=["GET", "POST"])
+@login_required
 def index():
     result = ""
     if request.method == "POST":
@@ -129,6 +173,7 @@ def index():
 
 
 @app.route("/cron-parser", methods=["GET", "POST"])
+@login_required
 def cron_parser():
     jobs = load_jobs()  # Загружаем запланированные задачи
 
@@ -197,6 +242,7 @@ def cron_parser():
 
 
 @app.route("/delete-job/<job_id>", methods=["POST"])
+@login_required
 def delete_job(job_id):
     jobs = load_jobs()
 
@@ -213,6 +259,7 @@ def delete_job(job_id):
 
 
 @app.route("/edit-job/<job_id>", methods=["GET"])
+@login_required
 def edit_job(job_id):
     jobs = load_jobs()
 
@@ -229,6 +276,7 @@ def edit_job(job_id):
 
 
 @app.route("/update-job/<job_id>", methods=["POST"])
+@login_required
 def update_job(job_id):
     jobs = load_jobs()
 

@@ -1,5 +1,6 @@
 Pillow
 Flask
+Flask-login
 seleniumbase
 APScheduler
 python-dotenv
