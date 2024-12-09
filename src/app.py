@@ -61,6 +61,9 @@ def load_user(username):
 
 # Функция для отправки письма
 def send_email(subject, body):
+    if os.getenv('SMTP_TOGGLE') != "1":
+        print("Сервис уведомлений отключен")
+        return
     sender_email = os.getenv('SMTP_FROM')
     receiver_email = os.getenv('SMTP_TO')
     password = os.getenv('SMTP_PASSWORD')
@@ -80,7 +83,7 @@ def send_email(subject, body):
             server.starttls()  # Защита соединения
             server.login(sender_email, password)  # Логин на почтовом сервере
             server.send_message(msg)  # Отправка сообщения
-        print("Письмо для отправлено")
+        print("Письмо отправлено")
     except Exception as e:
         print(f"Ошибка при отправке письма: {e}")
 
@@ -239,8 +242,8 @@ def cron_parser():
         timezone_str = request.form[
             "timezone"]  # Получаем выбранный часовой пояс
 
-        interval_minutes = int(
-            request.form["interval"])  # Получаем интервал в минутах
+        interval_hours = int(
+            request.form["interval"])  # Получаем интервал в часах
 
         # Проверка формата даты
         try:
@@ -270,22 +273,22 @@ def cron_parser():
                               trigger='interval',
                               id=job_id,
                               args=[domain],
-                              minutes=interval_minutes,
+                              hours=interval_hours,
                               start_date=utc_start_date)
 
             save_job(job_id, domain, utc_start_date.isoformat(),
-                     interval_minutes)
+                    interval_hours)
         else:
             # Запланируем задачу с заданным интервалом и датой старта
             scheduler.add_job(func=schedule_parsing,
                               trigger='interval',
                               id=job_id,
                               args=[domain],
-                              minutes=interval_minutes,
+                              hours=interval_hours,
                               start_date=client_start_date)
 
             save_job(job_id, domain, client_start_date.isoformat(),
-                     interval_minutes)
+                    interval_hours)
 
         # После добавления задачи обновляем список задач и возвращаем его на страницу
         jobs = load_jobs(
@@ -341,8 +344,8 @@ def update_job(job_id):
         start_date_str = request.form["start_date"]
         timezone_str = request.form[
             "timezone"]  # Получаем выбранный часовой пояс
-        interval_minutes = int(
-            request.form["interval"])  # Получаем интервал в минутах
+        interval_hours = int(
+            request.form["interval"])  # Получаем интервал в часах
 
         try:
             client_start_date = datetime.fromisoformat(
@@ -355,7 +358,7 @@ def update_job(job_id):
             else:
                 jobs[job_id]['start_date'] = client_start_date.isoformat()
 
-            jobs[job_id]['interval'] = interval_minutes
+            jobs[job_id]['interval'] = interval_hours
 
             # Обновляем задачу в планировщике
             scheduler.remove_job(job_id)  # Удаляем старую задачу
@@ -363,7 +366,7 @@ def update_job(job_id):
                               trigger='interval',
                               id=job_id,
                               args=[jobs[job_id]['domain']],
-                              minutes=interval_minutes)
+                              hours=interval_hours)
 
             with open(str(jobs_file), 'w') as f:
                 json.dump(jobs, f)  # Сохраняем изменения в файл
@@ -451,13 +454,13 @@ def load_and_schedule_jobs():
         start_date = datetime.fromisoformat(job['start_date'])
 
         # Добавляем задачу в планировщик независимо от времени начала (включая будущее)
-        interval_minutes = job['interval']
+        interval_hours = job['interval']
 
         scheduler.add_job(func=schedule_parsing,
                           trigger='interval',
                           id=job_id,
                           args=[domain],
-                          minutes=interval_minutes,
+                          hours=interval_hours,
                           start_date=start_date)
 
         print(
