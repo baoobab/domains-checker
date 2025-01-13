@@ -1,13 +1,25 @@
 ﻿from flask import Flask, request, jsonify
-from parser_workers.parser_example_domain_bs4 import parse as p1
-from parser_workers.parser_example_domain import parse as p2
 from dotenv import load_dotenv
 from typing import Tuple
 import os
+import importlib
 load_dotenv()
 
 app = Flask(__name__)
-parsers = [p1, p2] # Доступные парсеры (TODO: глобальный скоуп такое, потом вынести)
+parsers = [] # Доступные парсеры (TODO: глобальный скоуп такое, потом вынести)
+
+def load_parsers():
+    parsers_directory = 'parser_workers' # TODO: вынести в енв
+    directory = os.listdir(os.getcwd() + '\src\\' + parsers_directory)
+
+    parsers = []
+    for filename in directory:
+        if filename.startswith('parser_') and filename.endswith('.py'):
+            module_name = filename[:-3]  # Убираем .py
+            module = importlib.import_module(f"{parsers_directory.replace('/', '.')}.{module_name}")
+            if hasattr(module, 'parse'):
+                parsers.append(module.parse)  # Добавляем функцию parse в список
+    return parsers
 
 def parse_blocklist(domain) -> str:
     global parsers
@@ -38,5 +50,6 @@ def handle_exception(e):
     return f"Err on parser: {str(e)}", 500
 
 if __name__ == '__main__':
+    parsers = load_parsers()
     app.run(port=os.getenv("PARSER_APP_PORT", 5004))  # Порт для парсера
 
