@@ -1,27 +1,34 @@
 ﻿from flask import Flask, request, jsonify
 from dotenv import load_dotenv
-from typing import Tuple
+from typing import List, Tuple, Callable
 import os
 import importlib
 load_dotenv()
 
+
+# Тип для ответа от функции-парсера
+ParseFuncResult = Tuple[bool, str]
+
+# Тип для функции-парсера
+ParseFuncType = Callable[[str], ParseFuncResult]
+
 app = Flask(__name__)
 parsers = [] # Доступные парсеры (TODO: глобальный скоуп такое, потом вынести)
 
-def load_parsers():
-    parsers_directory = 'parser_workers' # TODO: вынести в енв
-    directory = os.listdir(os.getcwd() + '\src\\' + parsers_directory)
 
+def load_parsers() -> List[ParseFuncType]:
+    parsers_directory = 'parsers' # TODO: вынести в енв
+    directory = os.path.join(os.getcwd(), parsers_directory)
     parsers = []
-    for filename in directory:
+    for filename in os.listdir(directory):
         if filename.startswith('parser_') and filename.endswith('.py'):
             module_name = filename[:-3]  # Убираем .py
-            module = importlib.import_module(f"{parsers_directory.replace('/', '.')}.{module_name}")
+            module = importlib.import_module(f"{parsers_directory.replace("/", ".").replace("\\", ".")}.{module_name}")
             if hasattr(module, 'parse'):
-                parsers.append(module.parse)  # Добавляем функцию parse в список
+                parsers.append(module.parse)  # Сохраняем функцию parse
     return parsers
 
-def parse_blocklist(domain) -> str:
+def parse_blocklist(domain: str) -> str:
     global parsers
 
     errors_string = "" # стркоа для возврата ошибок, конкатится к результату
@@ -51,5 +58,5 @@ def handle_exception(e):
 
 if __name__ == '__main__':
     parsers = load_parsers()
-    app.run(port=os.getenv("PARSER_APP_PORT", 5004))  # Порт для парсера
+    app.run(host=os.getenv("HOST", "localhost"), port=os.getenv("PORT", 5004))  # Порт для парсера
 

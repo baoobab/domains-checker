@@ -1,0 +1,22 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# Файлы конфигурации IDE
+.idea/
+.vscode/
+
+# Логи
+*.log
+
+# Локальные экземпляры БД
+*.json
+
+# Файлы, созданные SeleniumBase (если есть)
+seleniumbase_logs/
+downloaded_files/

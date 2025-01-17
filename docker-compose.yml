@@ -1,0 +1,68 @@
+﻿version: "3.9"
+
+services:
+  db:
+    build:
+      context: ./db
+      dockerfile: ./db/Dockerfile
+    volumes:
+      - ./scheduled_jobs.json:/var/lib/json-db/data
+    restart: always
+    env_file:
+      - ./db/.env
+    ports:
+      - "${PORT}:${PORT}"
+  mailer:
+    build:
+      context: ./mailer
+      dockerfile: ./mailer/Dockerfile
+    restart: always
+    env_file:
+      - ./mailer/.env
+    ports:
+      - "${PORT}:${PORT}"
+  parser:
+    build:
+      context: ./parser
+      dockerfile: ./parser/Dockerfile
+    restart: always
+    env_file:
+      - ./parser/.env
+    ports:
+      - "${PORT}:${PORT}"
+  scheduler:
+    build:
+      context: ./scheduler
+      dockerfile: ./scheduler/Dockerfile
+    restart: always
+    env_file:
+      - ./scheduler/.env
+    ports:
+      - "${PORT}:${PORT}"
+    depends_on:
+      - parser
+      - db
+  tasks_queue:
+    build:
+      context: ./tasks_queue
+      dockerfile: ./tasks_queue/Dockerfile
+    restart: always
+    env_file:
+      - ./tasks_queue/.env
+    ports:
+      - "${PORT}:${PORT}"
+    depends_on:
+      - scheduler
+  app:
+    build:
+      context: ./app
+      dockerfile: ./app/Dockerfile
+    restart: always
+    env_file:
+      - ./app/.env
+    ports:
+      - "${PORT}:${PORT}"
+    depends_on:
+      - scheduler
+      - db
+      - tasks_queue

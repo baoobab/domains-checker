@@ -1,0 +1,4 @@
+Pillow
+Flask
+Flask-login
+python-dotenv

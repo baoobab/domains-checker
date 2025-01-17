@@ -3,11 +3,7 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
 import uuid
-import json
 import os
-import threading
-import queue
-import atexit
 import requests
 
 
@@ -16,13 +12,12 @@ load_dotenv()
 
 app = Flask(__name__, template_folder=os.getenv("FLASK_TEMPLATE_FOLDER"))
 app.secret_key = os.getenv('SECRET_KEY')
-app.config['SESSION_COOKIE_SECURE'] = False    # Использовать только через HTTPS
+app.config['SESSION_COOKIE_SECURE'] = False # Использовать только через HTTPS
 
 # URL-ы для обращения к воркерам
-PARSER_URL = f'http://{os.getenv("PARSER_APP_HOST")}:{os.getenv("PARSER_APP_PORT")}' # URL приложения-парсера
-SCHEDULER_URL = f'http://{os.getenv("SCHEDULER_APP_HOST")}:{os.getenv("SCHEDULER_APP_PORT")}' # URL планировщика
-DB_URL = f'http://{os.getenv("DB_WORKER_APP_HOST")}:{os.getenv("DB_WORKER_APP_PORT")}' # URL бд
-SMTP_MAIL_URL = f'http://{os.getenv("SMTP_MAIL_APP_HOST")}:{os.getenv("SMTP_MAIL_APP_PORT")}' # URL рассыльщика
+PARSER_URL = os.getenv("PARSER_APP_URL") # URL парсера
+SCHEDULER_URL = os.getenv("SCHEDULER_APP_URL")  # URL планировщика
+DB_URL = os.getenv("DB_APP_URL")  # URL бд
 
 # Текущий часовой пояс сервера
 server_timezone = datetime.now().astimezone().tzinfo
@@ -345,6 +340,6 @@ if __name__ == "__main__":
     print("Server Time Zone:", server_timezone)
 
     try:
-        app.run()
+        app.run(host=os.getenv("HOST", "localhost"), port=os.getenv("PORT", 5000))
     except Exception as e:
         print("App err:", str(e))

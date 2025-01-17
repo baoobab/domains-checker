@@ -11,9 +11,9 @@ load_dotenv()
 
 app = Flask(__name__)
 
-PARSER_URL = f'http://{os.getenv("PARSER_APP_HOST")}:{os.getenv("PARSER_APP_PORT")}' # URL приложения-парсера
-DB_URL = f'http://{os.getenv("DB_WORKER_APP_HOST")}:{os.getenv("DB_WORKER_APP_PORT")}' # URL приложения-бд
-SMTP_MAIL_URL = f'http://{os.getenv("SMTP_MAIL_APP_HOST")}:{os.getenv("SMTP_MAIL_APP_PORT")}' # URL приложения-рассыльщика
+PARSER_URL = os.getenv("PARSER_APP_URL") # URL приложения-парсера
+DB_URL = os.getenv("DB_APP_URL") # URL приложения-бд
+SMTP_MAIL_URL = os.getenv("SMTP_MAILER_APP_URL") # URL приложения-рассыльщика
 
 # Создаем глобальную очередь для управления задачами
 jobs_queue = queue.Queue()
@@ -93,4 +93,4 @@ if __name__ == "__main__":
     mailsThread.start()
     print("Mails Queue started")
 
-    app.run(port=os.getenv("QUEUE_WORKER_APP_PORT", 5002)) # Порт для воркера очередей
+    app.run(host=os.getenv("HOST", "localhost"), port=os.getenv("PORT", 5002)) # Порт для воркера очередей

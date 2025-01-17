@@ -40,6 +40,6 @@ secrets.py
 *.json
 
 # Файлы настроек окружения
-.env
+*.env
 .replit
 *.nix
