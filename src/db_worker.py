@@ -3,6 +3,8 @@ from datetime import datetime, timezone
 import json
 from dotenv import load_dotenv
 import os
+import signal
+import sys
 
 load_dotenv()
 
@@ -141,5 +143,11 @@ def add_job(job_id, domain, start_date, interval):
 def handle_exception(e):
     return f"Err on db worker: {str(e)}", 500
 
+def stop_db_worker(signum, frame):
+    print("DB worker stopped")
+    sys.exit(0)
+
 if __name__ == '__main__':
+    signal.signal(signal.SIGINT, stop_db_worker)  # Обработка сигнала завершения
+
     app.run(port=os.getenv("DB_WORKER_APP_PORT", 5003))  # Порт для бд-воркера

@@ -4,6 +4,8 @@ from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 import os
+import signal
+import sys
 
 load_dotenv()
 
@@ -45,6 +47,11 @@ def send_email_route():
     send_email(subject, body)
     return jsonify({"success": True})
 
+def stop_mailer(signum, frame):
+    print("Mailer stopped")
+    sys.exit(0)
 
 if __name__ == '__main__':
+    signal.signal(signal.SIGINT, stop_mailer)  # Обработка сигнала завершения
+
     app.run(port=os.getenv("SMTP_MAIL_APP_PORT", 5005))  # Порт для smtp-рассыльщика
