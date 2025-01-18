@@ -10,7 +10,7 @@ import requests
 # Загрузка переменных окружения из .env файла
 load_dotenv()
 
-app = Flask(__name__, template_folder=os.getenv("FLASK_TEMPLATE_FOLDER"))
+app = Flask(__name__, template_folder=os.getenv("FLASK_TEMPLATE_FOLDER", "../templates"))
 app.secret_key = os.getenv('SECRET_KEY')
 app.config['SESSION_COOKIE_SECURE'] = False # Использовать только через HTTPS
 
@@ -114,6 +114,7 @@ def cron_parser():
     try:
         jobs = (requests.get(f"{DB_URL}/get-jobs"))["jobs"]  # Загружаем запланированные задачи
     except Exception as e:
+        print("init get from db err:", str(e))
         return render_template("cron_parser.html",
             message="Ошибка при получении данных из бд",
             jobs=[])
