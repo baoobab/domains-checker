@@ -18,12 +18,13 @@ parsers = [] # Доступные парсеры (TODO: глобальный с�
 
 def load_parsers() -> List[ParseFuncType]:
     parsers_directory = 'parsers' # TODO: вынести в енв
-    directory = os.path.join(os.getcwd(), parsers_directory)
+    directory = os.path.join(os.getcwd(), "src", parsers_directory)
     parsers = []
     for filename in os.listdir(directory):
         if filename.startswith('parser_') and filename.endswith('.py'):
             module_name = filename[:-3]  # Убираем .py
-            module = importlib.import_module(f"{parsers_directory.replace("/", ".").replace("\\", ".")}.{module_name}")
+            module_path = parsers_directory.replace("/", ".").replace("\\", ".")
+            module = importlib.import_module(f'{module_path}.{module_name}')
             if hasattr(module, 'parse'):
                 parsers.append(module.parse)  # Сохраняем функцию parse
     return parsers
