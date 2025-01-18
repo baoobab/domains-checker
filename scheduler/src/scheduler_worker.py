@@ -73,5 +73,5 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, stop_scheduler)  # Обработка сигнала завершения
     start_scheduler()
     
-    app.run(host=os.getenv("HOST", "localhost"), port=os.getenv("PORT", 5001))  # Порт для планировщика
+    app.run(host="0.0.0.0", port=os.getenv("PORT", 5001))  # Порт для планировщика
     

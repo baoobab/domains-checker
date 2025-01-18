@@ -340,6 +340,6 @@ if __name__ == "__main__":
     print("Server Time Zone:", server_timezone)
 
     try:
-        app.run(host=os.getenv("HOST", "localhost"), port=os.getenv("PORT", 5000))
+        app.run(host="0.0.0.0", port=os.getenv("PORT", 5000))
     except Exception as e:
         print("App err:", str(e))

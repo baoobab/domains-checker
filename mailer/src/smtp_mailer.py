@@ -54,4 +54,4 @@ def stop_mailer(signum, frame):
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, stop_mailer)  # Обработка сигнала завершения
 
-    app.run(host=os.getenv("HOST", "localhost"), port=os.getenv("PORT", 5005))  # Порт для smtp-рассыльщика
+    app.run(host="0.0.0.0", port=os.getenv("PORT", 5005))  # Порт для smtp-рассыльщика

@@ -58,5 +58,5 @@ def handle_exception(e):
 
 if __name__ == '__main__':
     parsers = load_parsers()
-    app.run(host=os.getenv("HOST", "localhost"), port=os.getenv("PORT", 5004))  # Порт для парсера
+    app.run(host="0.0.0.0", port=os.getenv("PORT", 5004))  # Порт для парсера
 

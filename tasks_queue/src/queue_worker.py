@@ -93,4 +93,4 @@ if __name__ == "__main__":
     mailsThread.start()
     print("Mails Queue started")
 
-    app.run(host=os.getenv("HOST", "localhost"), port=os.getenv("PORT", 5002)) # Порт для воркера очередей
+    app.run(host="0.0.0.0", port=os.getenv("PORT", 5002)) # Порт для воркера очередей
