@@ -150,4 +150,4 @@ def stop_db_worker(signum, frame):
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, stop_db_worker)  # Обработка сигнала завершения
 
-    app.run(port=os.getenv("DB_WORKER_APP_PORT", 5003))  # Порт для бд-воркера
+    app.run(host="0.0.0.0", port=os.getenv("PORT", 5003))  # Порт для бд-воркера

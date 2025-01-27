@@ -1,0 +1,6 @@
+﻿# Python
+__pycache__/
+
+# Файлы конфигурации IDE
+.idea/
+.vscode/

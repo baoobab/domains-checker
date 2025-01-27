@@ -11,7 +11,7 @@ load_dotenv()
 app = Flask(__name__)
 scheduler = BackgroundScheduler({'apscheduler.timezone': 'UTC'})
 
-QUEUE_WORKER_URL = f'http://{os.getenv("QUEUE_WORKER_APP_HOST")}:{os.getenv("QUEUE_WORKER_APP_PORT")}' # URL воркера очереди
+QUEUE_WORKER_URL = os.getenv("TASKS_QUEUE_APP_URL") # URL воркера очереди
 
 
 def start_scheduler():
@@ -73,5 +73,5 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, stop_scheduler)  # Обработка сигнала завершения
     start_scheduler()
     
-    app.run(port=os.getenv("SCHEDULER_APP_PORT", 5001))  # Порт для планировщика
+    app.run(host="0.0.0.0", port=os.getenv("PORT", 5001))  # Порт для планировщика
     

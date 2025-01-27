@@ -1,0 +1,15 @@
+﻿# Python
+__pycache__/
+dist/
+build/
+
+# Файлы конфигурации IDE
+.idea/
+.vscode/
+
+# Логи
+*.log
+
+# Файлы, созданные SeleniumBase (если есть)
+seleniumbase_logs/
+downloaded_files/

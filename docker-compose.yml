@@ -1,0 +1,66 @@
+﻿services:
+  db:
+    build:
+      context: ./db
+      dockerfile: Dockerfile
+    volumes:
+      - "${DB_PATH}:/var/lib/json-db/data"
+    restart: always
+    env_file:
+      - ./db/.env
+    ports:
+      - "${DB_WORKER_APP_PORT}:${DB_WORKER_APP_PORT}"
+  mailer:
+    build:
+      context: ./mailer
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - ./mailer/.env
+    ports:
+      - "${SMTP_MAIL_APP_PORT}:${SMTP_MAIL_APP_PORT}"
+  parser:
+    build:
+      context: ./parser
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - ./parser/.env
+    ports:
+      - "${PARSER_APP_PORT}:${PARSER_APP_PORT}"
+  scheduler:
+    build:
+      context: ./scheduler
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - ./scheduler/.env
+    ports:
+      - "${SCHEDULER_APP_PORT}:${SCHEDULER_APP_PORT}"
+    depends_on:
+      - parser
+      - db
+  tasks_queue:
+    build:
+      context: ./tasks_queue
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - ./tasks_queue/.env
+    ports:
+      - "${QUEUE_WORKER_APP_PORT}:${QUEUE_WORKER_APP_PORT}"
+    depends_on:
+      - scheduler
+  app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - ./app/.env
+    ports:
+      - "${MAIN_APP_PORT}:${MAIN_APP_PORT}"
+    depends_on:
+      - scheduler
+      - db
+      - tasks_queue
